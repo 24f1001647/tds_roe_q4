@@ -1,0 +1,70 @@
+name: Matrix Build with Artifacts (50bdda8)
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }} | node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 20, 22]  # 3+ variants x 3 OSes = 9 parallel jobs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: matrix-50bdda8
+        run: |
+          echo "Building on ${{ runner.os }} (${{ matrix.os }}) with Node ${{ matrix.node }}"
+          node -v
+          echo "GITHUB_SHA=${GITHUB_SHA}"
+
+      - name: Generate build artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          # Create a non-empty, variant-unique JSON file
+          cat > dist/build-info.json <<'JSON'
+          {
+            "identifier": "50bdda8",
+            "note": "Matrix build artifact",
+            "timestamp": "__TIMESTAMP__",
+            "commit": "__SHA__",
+            "os": "__OS__",
+            "node": "__NODE__"
+          }
+          JSON
+          # Fill placeholders
+          ts="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" || ts="manual"
+          sed -i.bak "s/__TIMESTAMP__/${ts}/" dist/build-info.json || true
+          sed -i.bak "s/__SHA__/${GITHUB_SHA}/" dist/build-info.json || true
+          sed -i.bak "s/__OS__/${{ matrix.os }}/" dist/build-info.json || true
+          sed -i.bak "s/__NODE__/${{ matrix.node }}/" dist/build-info.json || true
+          rm -f dist/*.bak
+
+          # Add a small text payload to guarantee content
+          echo "Build for ${{ matrix.os }} with Node ${{ matrix.node }} at ${ts}" > dist/summary.txt
+
+          # Sanity check non-empty
+          test -s dist/build-info.json
+          test -s dist/summary.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Required prefix: build-50bdda8-<variant>
+          name: build-50bdda8-${{ matrix.os }}-node${{ matrix.node }}
+          path: dist
+          if-no-files-found: error
