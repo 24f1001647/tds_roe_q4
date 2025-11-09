@@ -2,7 +2,7 @@
 
 This repository demonstrates a GitHub Actions **matrix** build that runs in parallel across multiple OS and Node.js versions, and uploads non-empty, per-variant artifacts named with the required prefix `build-50bdda8-<variant>`.
 
-- **Email (required):** your.name@example.com
+- **Email (required):** 24f1001647@ds.study.iitm.ac.in
 
 ## Validate
 - At least **3** matrix jobs succeed (this workflow runs 9).
